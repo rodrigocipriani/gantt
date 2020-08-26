@@ -36,32 +36,32 @@ export default class Bar {
                 (this.task.progress / 100) || 0;
         this.group = createSVG('g', {
             class: 'bar-wrapper ' + (this.task.custom_class || ''),
-            'data-id': this.task.id
+            'data-id': this.task.id,
         });
         this.bar_group = createSVG('g', {
             class: 'bar-group',
-            append_to: this.group
+            append_to: this.group,
         });
         this.handle_group = createSVG('g', {
             class: 'handle-group',
-            append_to: this.group
+            append_to: this.group,
         });
     }
 
     prepare_helpers() {
-        SVGElement.prototype.getX = function() {
+        SVGElement.prototype.getX = function () {
             return +this.getAttribute('x');
         };
-        SVGElement.prototype.getY = function() {
+        SVGElement.prototype.getY = function () {
             return +this.getAttribute('y');
         };
-        SVGElement.prototype.getWidth = function() {
+        SVGElement.prototype.getWidth = function () {
             return +this.getAttribute('width');
         };
-        SVGElement.prototype.getHeight = function() {
+        SVGElement.prototype.getHeight = function () {
             return +this.getAttribute('height');
         };
-        SVGElement.prototype.getEndX = function() {
+        SVGElement.prototype.getEndX = function () {
             return this.getX() + this.getWidth();
         };
     }
@@ -70,6 +70,7 @@ export default class Bar {
         this.draw_bar();
         this.draw_progress_bar();
         this.draw_label();
+        this.draw_icon();
         this.draw_resize_handles();
     }
 
@@ -82,7 +83,7 @@ export default class Bar {
             rx: this.corner_radius,
             ry: this.corner_radius,
             class: 'bar',
-            append_to: this.bar_group
+            append_to: this.bar_group,
         });
 
         animateSVG(this.$bar, 'width', 0, this.width);
@@ -102,20 +103,46 @@ export default class Bar {
             rx: this.corner_radius,
             ry: this.corner_radius,
             class: 'bar-progress',
-            append_to: this.bar_group
+            append_to: this.bar_group,
         });
 
         animateSVG(this.$bar_progress, 'width', 0, this.progress_width);
     }
 
     draw_label() {
-        createSVG('text', {
+        let svg_text_params = {
             x: this.x + this.width / 2,
             y: this.y + this.height / 2,
             innerHTML: this.task.name,
             class: 'bar-label',
-            append_to: this.bar_group
-        });
+            append_to: this.bar_group,
+        };
+        if (this.task.style) {
+            svg_text_params.style = this.task.style;
+        }
+        createSVG('text', svg_text_params);
+        // labels get BBox in the next tick
+        requestAnimationFrame(() => this.update_label_position());
+    }
+
+    draw_icon() {
+        // <image href="https://mdn.mozillademos.org/files/6457/mdn_logo_only_color.png" height="200" width="200"/>
+        let svg_text_params = {
+            x: this.x + 2,
+            y: this.y + 2,
+            width: '15px',
+            height: '15px',
+            href: this.task.iconUrl,
+            class: 'bar-icon',
+            append_to: this.bar_group,
+        };
+        // if (this.task.style) {
+        //     svg_text_params.style = this.task.style;
+        // }
+        // if (this.task.icon) {
+        //     svg_text_params.innerHTML = `1${this.task.icon}1 ${this.task.name}`;
+        // }
+        createSVG('image', svg_text_params);
         // labels get BBox in the next tick
         requestAnimationFrame(() => this.update_label_position());
     }
@@ -134,7 +161,7 @@ export default class Bar {
             rx: this.corner_radius,
             ry: this.corner_radius,
             class: 'handle right',
-            append_to: this.handle_group
+            append_to: this.handle_group,
         });
 
         createSVG('rect', {
@@ -145,14 +172,14 @@ export default class Bar {
             rx: this.corner_radius,
             ry: this.corner_radius,
             class: 'handle left',
-            append_to: this.handle_group
+            append_to: this.handle_group,
         });
 
         if (this.task.progress && this.task.progress < 100) {
             this.$handle_progress = createSVG('polygon', {
                 points: this.get_progress_polygon_points().join(','),
                 class: 'handle progress',
-                append_to: this.handle_group
+                append_to: this.handle_group,
             });
         }
     }
@@ -165,7 +192,7 @@ export default class Bar {
             bar_progress.getEndX() + 5,
             bar_progress.getY() + bar_progress.getHeight(),
             bar_progress.getEndX(),
-            bar_progress.getY() + bar_progress.getHeight() - 8.66
+            bar_progress.getY() + bar_progress.getHeight() - 8.66,
         ];
     }
 
@@ -175,7 +202,7 @@ export default class Bar {
     }
 
     setup_click_event() {
-        $.on(this.group, 'focus ' + this.gantt.options.popup_trigger, e => {
+        $.on(this.group, 'focus ' + this.gantt.options.popup_trigger, (e) => {
             if (this.action_completed) {
                 // just finished a move action, wait for a few seconds
                 return;
@@ -186,7 +213,7 @@ export default class Bar {
             this.group.classList.add('active');
         });
 
-        $.on(this.group, 'dblclick', e => {
+        $.on(this.group, 'dblclick', (e) => {
             if (this.action_completed) {
                 // just finished a move action, wait for a few seconds
                 return;
@@ -199,7 +226,11 @@ export default class Bar {
     show_popup() {
         if (this.gantt.bar_being_dragged) return;
 
-        const start_date = date_utils.format(this.task._start, 'MMM D', this.gantt.options.language);
+        const start_date = date_utils.format(
+            this.task._start,
+            'MMM D',
+            this.gantt.options.language
+        );
         const end_date = date_utils.format(
             date_utils.add(this.task._end, -1, 'second'),
             'MMM D',
@@ -219,7 +250,7 @@ export default class Bar {
         const bar = this.$bar;
         if (x) {
             // get all x values of parent task
-            const xs = this.task.dependencies.map(dep => {
+            const xs = this.task.dependencies.map((dep) => {
                 return this.gantt.get_bar(dep).$bar.getX();
             });
             // child task must not go before parent
@@ -260,7 +291,7 @@ export default class Bar {
         this.gantt.trigger_event('date_change', [
             this.task,
             new_start_date,
-            date_utils.add(new_end_date, -1, 'second')
+            date_utils.add(new_end_date, -1, 'second'),
         ]);
     }
 
@@ -295,7 +326,7 @@ export default class Bar {
 
     compute_progress() {
         const progress =
-            this.$bar_progress.getWidth() / this.$bar.getWidth() * 100;
+            (this.$bar_progress.getWidth() / this.$bar.getWidth()) * 100;
         return parseInt(progress, 10);
     }
 
@@ -305,11 +336,11 @@ export default class Bar {
         const gantt_start = this.gantt.gantt_start;
 
         const diff = date_utils.diff(task_start, gantt_start, 'hour');
-        let x = diff / step * column_width;
+        let x = (diff / step) * column_width;
 
         if (this.gantt.view_is('Month')) {
             const diff = date_utils.diff(task_start, gantt_start, 'day');
-            x = diff * column_width / 30;
+            x = (diff * column_width) / 30;
         }
         return x;
     }
